@@ -1,0 +1,14 @@
+logs
+project/project
+project/target
+target
+.history
+dist
+/.idea
+/*.iml
+/out
+/.idea_modules
+/.classpath
+/.project
+/.settings
+.DS_Store

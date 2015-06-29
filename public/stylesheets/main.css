@@ -1,0 +1,84 @@
+body {
+    margin: 20px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 12px;
+}
+h1 {
+    font-size: 1.2em;
+    font-weight: 700;
+}
+h2 {
+    font-size: 1em;
+    line-height: 1em;
+    font-weight: 600;
+}
+#metricsText {
+    position: absolute;
+    top: 20px;
+    left: 550px;
+    width: 300px;
+    font-size: 0.8em;
+}
+input {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7em;
+}
+button {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.7em;
+    background-color: #000000; 
+    font-weight: 600;
+    color: #FFFFFF; 
+    padding: 1px 4px 1px 4px;
+    border-radius: 3px;
+    border: 1px solid #124010;
+    text-align: center;
+}
+
+button:active {
+    padding: 3px 6px 3px 6px;
+}
+
+.startButtons {
+    background-color: #008832;   
+}
+.stopButtons {
+    background-color: #AA0012;
+}
+#urlField {
+    width: 400px;
+}
+.metricVal {
+    font-weight: bold;
+}
+.barchart {
+    padding-top: 10px;
+}
+#rampCount {
+    width: 20px;
+}
+#rampInterval  {
+    width: 10px;
+}
+.ramp {
+    font-size: 0.7em;
+    font-weight: 600;
+}
+a {
+    text-decoration: none;
+    font-weight: bold;
+    color: steelblue;
+}
+#token {
+    visibility: hidden;
+}
+#heartbeat {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: 18px;
+    left: 530px;
+}
+li {
+    list-style-type: none;
+}

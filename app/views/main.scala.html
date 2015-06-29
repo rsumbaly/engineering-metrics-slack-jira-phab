@@ -1,0 +1,74 @@
+@(reportContent: Map[String, reporter.Report], nWeeks: Int)
+
+@import _root_.reporter.Report
+
+<meta charset="utf-8">
+<head>
+    <title>Phabricator report</title>
+    <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+</head>
+
+<body style="font-size: 20px">
+<h1 style="font-size: 25px">Report for @nWeeks weeks</h1>
+@for((username, report) <- reportContent) {
+    <h1>@username</h1>
+
+    <h2>Percent of diffs sent within team - @report.relativeSentAllReviews</h2>
+    <h2>Percent of diffs received within team - @report.relativeReceivedAllReviews</h2>
+
+    @if(report.durationSentReviewMetadata.maxClosedReview.isDefined) {
+        <h2>Closed diff sent with longest review -
+            <a href="@report.durationSentReviewMetadata.maxClosedReview.get.reviewUrl">link</a>
+            (@report.durationSentReviewMetadata.maxClosedReview.get.daysDifference days)
+        </h2>
+    }
+
+    @if(report.durationSentReviewMetadata.maxOpenReview.isDefined) {
+        <h2>Open diff sent still not reviewed -
+            <a href="@report.durationSentReviewMetadata.maxOpenReview.get.reviewUrl">link</a>
+            (@report.durationSentReviewMetadata.maxOpenReview.get.daysDifference days)
+        </h2>
+    }
+
+    @if(report.durationReceivedReviewMetadata.maxClosedReview.isDefined) {
+        <h2>Closed diff received with longest review -
+            <a href="@report.durationReceivedReviewMetadata.maxClosedReview.get.reviewUrl">link</a>
+            (@report.durationReceivedReviewMetadata.maxClosedReview.get.daysDifference days)
+        </h2>
+    }
+
+    @if(report.durationReceivedReviewMetadata.maxOpenReview.isDefined) {
+        <h2>Open diff received still not reviewed -
+            <a href="@report.durationReceivedReviewMetadata.maxOpenReview.get.reviewUrl">link</a>
+            (@report.durationReceivedReviewMetadata.maxOpenReview.get.daysDifference days)
+        </h2>
+    }
+
+    <h2>Top reviews sent to: </h2>
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Reviews send count:</th></tr>
+        </thead>
+        <tbody>
+        @for((user, count) <- report.sentAllReviewsPerUsername) {
+            <tr><td>@user</td><td>@count</td></tr>
+        }
+        </tbody>
+    </table>
+
+    <h2>Top reviews received from: </h2>
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Reviews received count:</th></tr>
+        </thead>
+        <tbody>
+        @for((user, count) <- report.receivedAllReviewsPerUsername) {
+            <tr><td>@user</td><td>@count</td></tr>
+        }
+        </tbody>
+    </table>
+
+    <hr>
+}
+</body>
