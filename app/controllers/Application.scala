@@ -1,21 +1,19 @@
 package controllers
 
 import javax.inject.Inject
-
-import play.api.mvc._
-
 import javax.inject.Singleton
 
-import reporter.Reporter
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import play.api.mvc._
+import reporter._
 
 import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class Application @Inject() (
     reporter: Reporter)
-  (implicit ec: ExecutionContext) extends Controller {
+  (implicit ec: ExecutionContext) extends Controller with StrictLogging {
 
   def main(usernames: String, nWeeks: Int) = Action {
     Async {
@@ -24,8 +22,10 @@ class Application @Inject() (
         Future.successful(BadRequest("Should have atleast two team members"))
       } else {
         reporter.generateReport(teamUsernames, nWeeks).map { report =>
-          Ok(views.html.main(report, nWeeks))
+          val (userNames, reviewMatrix, standardizedMatrix) = ReporterUtils.convertToReviewMatrix(report)
+          Ok(views.html.main(report, nWeeks, userNames, reviewMatrix, standardizedMatrix))
         }.recover { case e: Throwable =>
+          logger.error("Error while retrieving report", e)
           BadRequest(s"Error while retrieving report - ${e.getMessage}")
         }
       }
