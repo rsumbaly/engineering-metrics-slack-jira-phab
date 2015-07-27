@@ -13,4 +13,5 @@ resolvers += "Sonatype Releases" at "http://oss.sonatype.org/content/repositorie
 resolvers += "Maven Repository" at "http://mvnrepository.com/artifact"
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("play" % "sbt-plugin" % "2.1.1")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.0")
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")

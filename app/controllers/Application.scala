@@ -15,19 +15,17 @@ class Application @Inject() (
     reporter: Reporter)
   (implicit ec: ExecutionContext) extends Controller with StrictLogging {
 
-  def main(usernames: String, nWeeks: Int) = Action {
-    Async {
-      val teamUsernames = usernames.trim.split(",").toList
-      if (teamUsernames.length <= 1) {
-        Future.successful(BadRequest("Should have atleast two team members"))
-      } else {
-        reporter.generateReport(teamUsernames, nWeeks).map { report =>
-          val (userNames, reviewMatrix, standardizedMatrix) = ReporterUtils.convertToReviewMatrix(report)
-          Ok(views.html.main(report, nWeeks, userNames, reviewMatrix, standardizedMatrix))
-        }.recover { case e: Throwable =>
-          logger.error("Error while retrieving report", e)
-          BadRequest(s"Error while retrieving report - ${e.getMessage}")
-        }
+  def main(usernames: String, nWeeks: Int) = Action.async {
+    val teamUsernames = usernames.trim.split(",").toList
+    if (teamUsernames.length <= 1) {
+      Future.successful(BadRequest("Should have atleast two team members"))
+    } else {
+      reporter.generateReport(teamUsernames, nWeeks).map { report =>
+        val (userNames, reviewMatrix, standardizedMatrix) = ReporterUtils.convertToReviewMatrix(report)
+        Ok(views.html.main(report, nWeeks, userNames, reviewMatrix, standardizedMatrix))
+      }.recover { case e: Throwable =>
+        logger.error("Error while retrieving report", e)
+        BadRequest(s"Error while retrieving report - ${e.getMessage}")
       }
     }
   }
