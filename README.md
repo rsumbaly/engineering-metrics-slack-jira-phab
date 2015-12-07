@@ -11,3 +11,14 @@ Set the configurations in `conf/application.conf`
 > run 
 In browser - http://localhost:9000/phab?usernames=rsumbaly,blah&nWeeks=4
 ```
+
+## To deploy to remote box
+```
+> sbt dist
+Copy zip from `target/universal`
+> ./bin/phabricator-report > new_log &
+```
+
+# Slack 
+
+Integration with slack to publish reports

@@ -7,7 +7,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object ReporterUtils {
 
-  def convertToReviewMatrix(reports: Map[String, Report]): (String, String, String) = {
+  def convertToReviewMatrix(reports: Map[String, SummaryReport]): (String, String, String) = {
     val matrix = reports.keys.foldRight(List[List[Int]]())( (rowName, existing)
                   => generateRow(reports.keys.toList, reports.get(rowName)) :: existing)
     val normalizedMatrix = generateNormalized(matrix)
@@ -30,11 +30,11 @@ object ReporterUtils {
     newMatrix.toList
   }
 
-  private def generateRow(columnNames: List[String], report: Option[Report]): List[Int] = {
+  private def generateRow(columnNames: List[String], report: Option[SummaryReport]): List[Int] = {
     columnNames.foldRight(List[Int]())( (columnName, existing) => generateElement(columnName, report) :: existing)
   }
 
-  private def generateElement(columnName: String, report: Option[Report]): Int = {
+  private def generateElement(columnName: String, report: Option[SummaryReport]): Int = {
     if(report.isEmpty) 0 else report.get.sentAllReviewsPerUsername.getOrElse(columnName, 0)
   }
 }
