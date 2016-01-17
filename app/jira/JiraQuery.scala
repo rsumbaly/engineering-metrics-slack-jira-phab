@@ -49,5 +49,5 @@ class JiraQueryImpl @Inject()(jiraClient: JiraClient, config: Configuration) ext
   })
 
   logger.info("Blah")
-  logger.info("Test" + restClient.getUserClient.getUser("rsumbaly"))
+  logger.info("Test" + restClient.getUserClient.getUser("<FILL>"))
 }

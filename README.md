@@ -9,7 +9,7 @@ Given a list of phabricator user names, generates a report of where the reviews 
 Set the configurations in `conf/application.conf`
 > sbt
 > run 
-In browser - http://localhost:9000/phab?usernames=rsumbaly,blah&nWeeks=4
+In browser - http://localhost:9000/phab?usernames=user1,user2&nWeeks=4
 ```
 
 ## To deploy to remote box
