@@ -1,11 +1,11 @@
-package reporter
+package phabricator
 
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
 import scala.collection.mutable.ArrayBuffer
 
-object ReporterUtils {
+object PhabricatorReporterUtils {
 
   def convertToReviewMatrix(reports: Map[String, SummaryReport]): (String, String, String) = {
     val matrix = reports.keys.foldRight(List[List[Int]]())( (rowName, existing)

@@ -1,10 +1,8 @@
-package reporter
+package phabricator
 
-import javax.inject.Singleton
 import javax.inject.Inject
 
 import org.joda.time.DateTime
-import phabricator._
 
 import scala.collection.immutable
 import scala.collection.mutable
@@ -13,43 +11,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-/**
- * For both open and closed reviews
- */
-case class MaxDurationReviewMetadata (
-  maxClosedReview: Option[Review],
-  maxOpenReview: Option[Review])
-
-/**
- * The intent of the reporter is to return a bunch of statistics.
- *
- * In last N weeks:
- * - %age of diffs sent out to - highest to lowest
- * - %age of diffs reviewed for - highest to lowest
- * - Max time to review a closed diff / review an open diff
- * - Max time to get diff reviewed (closed) / get a review on an open diff
- * - All open reviews received
- * - Relative %age of diffs being sent wrt team
- * - Relative %age of diffs being reviewed wrt team
- */
-case class SummaryReport(
-  authorUsername: String,
-  sentAllReviewsPerUsername: immutable.Map[String, Int],
-  receivedAllReviewsPerUsername: immutable.Map[String, Int],
-  durationSentReviewMetadata: MaxDurationReviewMetadata,
-  durationReceivedReviewMetadata: MaxDurationReviewMetadata,
-  relativeSentAllReviews: Double,
-  relativeReceivedAllReviews: Double)
-
-/**
- * Over all time: 
- * - All open reviews received
- */
-case class OpenReviewsReport(
-  authorUsername: String,
-  openReviews: immutable.Seq[Review])
-
-trait Reporter {
+trait PhabricatorReporter {
 
   /**
    * Return a report per user name
@@ -58,21 +20,20 @@ trait Reporter {
    * @return Report per person
    */
   def generateSummaryReport(
-    teamUsernames: List[String],
-    lastNWeek: Int): Future[immutable.Map[String, SummaryReport]]
-  
+                             teamUsernames: List[String],
+                             lastNWeek: Int): Future[immutable.Map[String, SummaryReport]]
+
   def generateOpenReviewReport(
-    teamUsernames: List[String]): Future[immutable.Map[String, OpenReviewsReport]]
+                                teamUsernames: List[String]): Future[immutable.Map[String, OpenReviewsReport]]
 }
 
-@Singleton
-class ReporterImpl @Inject() (
-  queryEngine: PhabricatorQuery)
-  (implicit ec: ExecutionContext) extends Reporter {
+class PhabricatorReporterImpl @Inject()(
+                                         queryEngine: PhabricatorQuery)
+                                       (implicit ec: ExecutionContext) extends PhabricatorReporter {
 
-  override def generateOpenReviewReport (teamUsernames: List[String]) = {
+  override def generateOpenReviewReport(teamUsernames: List[String]) = {
     for {
-      // Convert all user names to ids
+    // Convert all user names to ids
       usernameToPhids <- queryEngine.getPhidForUsername(teamUsernames)
 
       phidsToUsername = usernameToPhids.map { case (from, to) => to -> from }.toMap
@@ -92,7 +53,7 @@ class ReporterImpl @Inject() (
 
     } yield {
 
-      val openReceivedReviewPerPhid = mutable.Map[String, List[Review]]()
+      var openReceivedReviewPerPhid = Map[String, List[Review]]()
 
       // Filter reviews that don't have anyone within the team
       // We still need to filter out people who are not in the team below.
@@ -120,11 +81,11 @@ class ReporterImpl @Inject() (
   }
 
   override def generateSummaryReport(
-    teamUsernames: List[String],
-    lastNWeek: Int): Future[immutable.Map[String, SummaryReport]] = {
+                                      teamUsernames: List[String],
+                                      lastNWeek: Int): Future[immutable.Map[String, SummaryReport]] = {
 
     for {
-      // Convert all user names to ids
+    // Convert all user names to ids
       usernameToPhids <- queryEngine.getPhidForUsername(teamUsernames)
 
       phidsToUsername = usernameToPhids.map { case (from, to) => to -> from }.toMap
@@ -167,7 +128,7 @@ class ReporterImpl @Inject() (
           reviewSent._2.reviewersPhids.foreach { reviewerPhid =>
 
             // Remove reviewers not in the team
-            if ( teamPhids.contains(reviewerPhid)) {
+            if (teamPhids.contains(reviewerPhid)) {
               val edge = (authorPhid, reviewerPhid)
               sentReviewEdge += edge -> (sentReviewEdge.getOrElse(edge, 0) + 1)
             }
@@ -178,14 +139,16 @@ class ReporterImpl @Inject() (
         reviewsSent
           .filter(_._2.committedAt.isEmpty)
           .reduceOption { (review1, review2) =>
-            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2 }
+            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2
+          }
           .collect { case (_, review) => durationOpenSentReviewsPerPhid += (authorPhid -> review) }
 
         // Filter only closed reviews and get max time
         reviewsSent
           .filter(_._2.committedAt.nonEmpty)
           .reduceOption { (review1, review2) =>
-            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2 }
+            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2
+          }
           .collect { case (_, review) => durationClosedSentReviewsPerPhid += (authorPhid -> review) }
       }
 
@@ -201,14 +164,16 @@ class ReporterImpl @Inject() (
         reviewsReceived
           .filter(_._2.committedAt.isEmpty)
           .reduceOption { (review1, review2) =>
-            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2 }
+            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2
+          }
           .collect { case (_, review) => durationOpenReceivedReviewsPerPhid += (reviewerPhid -> review) }
 
         // Filter only closed reviews and get max time
         reviewsReceived
           .filter(_._2.committedAt.nonEmpty)
           .reduceOption { (review1, review2) =>
-            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2 }
+            if (review1._2.daysDifference > review2._2.daysDifference) review1 else review2
+          }
           .collect { case (_, review) => durationClosedReceivedReviewsPerPhid += (reviewerPhid -> review) }
       }
 
@@ -223,17 +188,20 @@ class ReporterImpl @Inject() (
         val filteredReceivedReviewEdge = sentReviewEdge
           .filter { case ((_, toPhid), _) => toPhid == reportPhid }
 
-        val report = SummaryReport (reportUsername,
+        val report = SummaryReport(reportUsername,
           filteredSentReviewEdge.map { case ((_, toPhid), count) => (phidsToUsername.get(toPhid).get -> count) }.toMap,
-          filteredReceivedReviewEdge.map { case ((fromPhid, _), count) => (phidsToUsername.get(fromPhid).get -> count) }.toMap,
+          filteredReceivedReviewEdge.map
+          { case ((fromPhid, _), count) => (phidsToUsername.get(fromPhid).get -> count) }.toMap,
           MaxDurationReviewMetadata(
             durationClosedSentReviewsPerPhid.get(reportPhid),
             durationOpenSentReviewsPerPhid.get(reportPhid)),
           MaxDurationReviewMetadata(
             durationClosedReceivedReviewsPerPhid.get(reportPhid),
             durationOpenReceivedReviewsPerPhid.get(reportPhid)),
-          BigDecimal(filteredSentReviewEdge.values.sum * 100.0 / totalSent).setScale(4, BigDecimal.RoundingMode.HALF_UP).toDouble,
-          BigDecimal(filteredReceivedReviewEdge.values.sum * 100.0 / totalSent).setScale(4, BigDecimal.RoundingMode.HALF_UP).toDouble)
+          BigDecimal(filteredSentReviewEdge.values.sum * 100.0 / totalSent).setScale(4,
+            BigDecimal.RoundingMode.HALF_UP).toDouble,
+          BigDecimal(filteredReceivedReviewEdge.values.sum * 100.0 / totalSent).setScale(4,
+            BigDecimal.RoundingMode.HALF_UP).toDouble)
 
         // Return tuple of (user name and report)
         (reportUsername -> report)
@@ -243,7 +211,7 @@ class ReporterImpl @Inject() (
   }
 }
 
-object ReporterImpl extends App {
+object PhabricatorReporterApp extends App {
 
   import ExecutionContext.Implicits.global
 
@@ -253,7 +221,7 @@ object ReporterImpl extends App {
     user = "<FILL>",
     certificate = "<FILL>"))
   val testQuery = new PhabricatorQueryImpl(testClient)
-  val testReporter = new ReporterImpl(testQuery)
+  val testReporter = new PhabricatorReporterImpl(testQuery)
 
   println(Await.result(
     testReporter.generateSummaryReport(

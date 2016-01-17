@@ -8,6 +8,7 @@ object Global extends GlobalSettings with StrictLogging {
     logger.info(Colors.green("Starting phabricator metrics"))
   }
 
-  override def onStop(app: play.api.Application) {}
+  override def onStop(app: play.api.Application): Unit = {
+  }
 
 }

@@ -12,24 +12,23 @@ import scala.concurrent.ExecutionContext
 
 trait PhabricatorClient {
 
+  final val CLIENT_NAME = "phab-metrics"
+  final val CLIENT_VERSION = 1
+
   /** Call a Conduit method with authentication enabled.
     *
     * @param method The Conduit method to call.
     * @param params The parameters to pass to Conduit.
     * @return The parsed response from Conduit
     */
-  def call(
-    method: String,
-    params: Map[String, Any]): Future[JValue]
+  def call(method: String,
+           params: Map[String, Any]): Future[JValue]
 
 }
 
 @Singleton
-class PhabricatorClientImpl @Inject() (
-    config: PhabricatorConfig)
-  (implicit ec: ExecutionContext) extends PhabricatorClient {
-
-  import PhabricatorClientImpl._
+class PhabricatorClientImpl @Inject()(config: PhabricatorConfig)
+                                     (implicit ec: ExecutionContext) extends PhabricatorClient {
 
   implicit val formats = DefaultFormats
 
@@ -41,7 +40,7 @@ class PhabricatorClientImpl @Inject() (
 
   // Format it correctly
   val authSignature = authSignatureMd5.digest
-    .map(x =>"%02x".format(x)).mkString
+    .map(x => "%02x".format(x)).mkString
 
   // Now try to get session id
   val connectResponse = call(
@@ -59,14 +58,14 @@ class PhabricatorClientImpl @Inject() (
   val connectionID = (connectResponse \ "result" \ "connectionID").extract[Int]
 
   override def call(
-    method: String,
-    params: Map[String, Any]): Future[JValue] =
+                     method: String,
+                     params: Map[String, Any]): Future[JValue] =
     call(method, params, true)
 
   private def call(
-    method: String,
-    params: Map[String, Any],
-    authenticated: Boolean): Future[JValue] = {
+                    method: String,
+                    params: Map[String, Any],
+                    authenticated: Boolean): Future[JValue] = {
 
     // Convert to json string
     val jsonString = JSONObject(
@@ -89,9 +88,4 @@ class PhabricatorClientImpl @Inject() (
     // Return the response as json value
     Http(request > as.json4s.Json)
   }
-}
-
-object PhabricatorClientImpl {
-  final val CLIENT_NAME = "phab-metrics"
-  final val CLIENT_VERSION = 1
 }
