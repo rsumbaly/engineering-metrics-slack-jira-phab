@@ -13,17 +13,18 @@ import net.oauth._
 
 class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
 
-  val privateKey = scala.io.Source.fromFile(jiraConfig.privateKeyFile)
+  val privateKey = scala.io.Source.fromFile(jiraConfig.privateKeyFile).mkString
 
   val SERVLET_BASE_URL: String = "/plugins/servlet"
 
   def BASE_URI = new URI(jiraConfig.baseUrl)
 
+  def REQUEST_TOKEN_URL = jiraConfig.baseUrl + SERVLET_BASE_URL + "/oauth/request-token"
+
   def AUTHORIZED_URL = jiraConfig.baseUrl + SERVLET_BASE_URL + "/oauth/authorize"
 
   def ACCESS_TOKEN_URL = jiraConfig.baseUrl + SERVLET_BASE_URL + "/oauth/access-token"
 
-  def REQUEST_TOKEN_URL = jiraConfig.baseUrl + SERVLET_BASE_URL + "/oauth/request-token"
 
   lazy val accessor: OAuthAccessor = {
     val serviceProvider = new OAuthServiceProvider(REQUEST_TOKEN_URL, AUTHORIZED_URL, ACCESS_TOKEN_URL)
@@ -42,27 +43,28 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
         ImmutableList.of(new OAuth.Parameter(OAuth.OAUTH_CALLBACK, jiraConfig.callback))
       )
 
-      TokenSecretVerifierHolder(accessor.requestToken, accessor.tokenSecret,
-        message.getParameter(OAuth.OAUTH_VERIFIER))
+      TokenSecretVerifierHolder(
+        token = accessor.requestToken,
+        secret = accessor.tokenSecret,
+        verifier = message.getParameter(OAuth.OAUTH_VERIFIER))
     }
     catch {
       case e: Throwable => throw new RuntimeException("Failed to obtain request token", e)
     }
   }
 
-  def makeAuthenticatedRequest(url: String, accessToken: String) = {
+  def makeTestRequest(accessToken: String, url: String) = {
     try {
       val client = new OAuthClient(new HttpClient4())
       accessor.accessToken = accessToken
-      val response = client.invoke(accessor, url, Lists.newArrayList())
-      response.readBodyAsString
+      client.invoke(accessor, url, Lists.newArrayList()).readBodyAsString
     }
     catch {
-      case e: Throwable => throw new RuntimeException("Failed to make an authenticated request.", e)
+      case e: Throwable => throw new RuntimeException("Failed to finish test request", e)
     }
   }
 
-  def swapRequestTokenForAccessToken(requestToken: String, tokenSecret: String, oauthVerifier: String) {
+  def getAccessToken(requestToken: String, tokenSecret: String, oauthVerifier: String) {
     try {
       val client = new OAuthClient(new HttpClient4())
       accessor.requestToken = requestToken
@@ -72,9 +74,10 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
       message.getToken
     }
     catch {
-      case e: Throwable => throw new RuntimeException("Failed to swap request token with access token", e)
+      case e: Throwable => throw new RuntimeException("Failed to get access tokens", e)
     }
   }
+
 }
 
 object JiraClientApp extends App {
@@ -112,7 +115,19 @@ object JiraClientApp extends App {
       val requestToken = args(5)
       val tokenSecret = args(6)
       val verifier = args(7)
-      println("Access token is " + client.swapRequestTokenForAccessToken(requestToken, tokenSecret, verifier))
+      println("Access token is " + client.getAccessToken(requestToken, tokenSecret, verifier))
+    }
+    case Commands.TEST_REQUEST => {
+      if (args.length != 7) {
+        sys.error(
+          "Should have atleast 8 arguments - accessToken [consumerKey] [privateKeyFile] [baseUrl] [callbackUrl]" +
+            " [accessToken] [jiraUrl]")
+      }
+
+      val accessToken = args(5)
+      val jiraUrl = args(6)
+      println(jiraUrl)
+      println("Test response is " + client.makeTestRequest(accessToken, jiraUrl))
     }
     case _ => throw new IllegalArgumentException("Could not find match")
   }

@@ -45,3 +45,9 @@ d)
 ```
 This will give you the access token that you save into `conf/prod.conf`
 e) To revoke access at any given time go to = https://[company].atlassian.net/plugins/servlet/oauth/users/access-tokens
+
+f) Check if everything works
+```
+[phabricator-report] runMain jira.JiraClient testRequest test-report [private key file path - corresponding to public key entered above] https://[company].atlassian.net http://[company].org [accessToken] [jiraUrl]
+```
+

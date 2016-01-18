@@ -1,5 +1,6 @@
 package jira
 
+import java.io.File
 import java.util.Collections
 import javax.inject.Inject
 
@@ -7,6 +8,7 @@ import com.atlassian.jira.rest.client.api.AuthenticationHandler
 import com.atlassian.httpclient.api.Request
 import com.atlassian.jira.rest.client.api.JiraRestClient
 import com.atlassian.jira.rest.client.api.JiraRestClientFactory
+import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder
 import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import net.oauth.OAuth
@@ -23,6 +25,8 @@ class JiraQueryImpl @Inject()(jiraClient: JiraClient, config: Configuration) ext
 
   val accessToken = config.getString("jira.accessToken").get
   val factory: JiraRestClientFactory = new AsynchronousJiraRestClientFactory()
+
+  // Adopted from http://www.azar.in/questions/5314547/oauth-authentication-in-jira-by-using-java
   val restClient: JiraRestClient = factory.create(jiraClient.BASE_URI, new AuthenticationHandler {
     override def configure(request: Request): Unit = {
       import scala.collection.JavaConversions._
@@ -32,7 +36,7 @@ class JiraQueryImpl @Inject()(jiraClient: JiraClient, config: Configuration) ext
         Collections.emptyList())
       val accepted = jiraClient.accessor.consumer.getProperty(OAuthConsumer.ACCEPT_ENCODING)
       if (accepted != null) {
-        request2.getHeaders().add(new OAuth.Parameter(HttpMessage.ACCEPT_ENCODING, accepted.toString))
+        request2.getHeaders.add(new OAuth.Parameter(HttpMessage.ACCEPT_ENCODING, accepted.toString))
       }
       val ps = jiraClient.accessor.consumer.getProperty(OAuthClient.PARAMETER_STYLE)
       val style = if (ps == null) {
@@ -47,7 +51,4 @@ class JiraQueryImpl @Inject()(jiraClient: JiraClient, config: Configuration) ext
     }
 
   })
-
-  logger.info("Blah")
-  logger.info("Test" + restClient.getUserClient.getUser("<FILL>"))
 }

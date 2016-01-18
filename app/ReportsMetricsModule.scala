@@ -1,7 +1,9 @@
 
 import java.io.File
+import java.io.PrintWriter
 
 import com.google.inject.AbstractModule
+import jira.JiraClient
 import jira.JiraConfig
 import jira.JiraQuery
 import jira.JiraQueryImpl
@@ -11,6 +13,7 @@ import phabricator._
 import play.api.Environment
 import play.api.Configuration
 import slack._
+
 
 class ReportsMetricsModule(env: Environment, config: Configuration)
   extends AbstractModule {
@@ -26,7 +29,8 @@ class ReportsMetricsModule(env: Environment, config: Configuration)
         configs.getString("baseUrl").get,
         configs.getString("callback").get)
     }
-    bind(classOf[JiraQuery]).to(classOf[JiraQueryImpl])
+    bind(classOf[JiraClient])
+    bind(classOf[JiraQuery]).to(classOf[JiraQueryImpl]).asEagerSingleton()
 
     // Phabricator specific configuration
     bind(classOf[PhabricatorConfig]).toInstance {
@@ -54,6 +58,7 @@ class ReportsMetricsModule(env: Environment, config: Configuration)
     bind(classOf[GuiceJobFactory])
     bind(classOf[SchedulerFactory]).toInstance(new StdSchedulerFactory("quartz.properties"))
     bind(classOf[SlackScheduler]).asEagerSingleton
+
   }
 
 
