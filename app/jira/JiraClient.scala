@@ -13,11 +13,11 @@ import net.oauth._
 
 class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
 
+  val SERVLET_BASE_URL = "/plugins/servlet"
+
   val privateKey = scala.io.Source.fromFile(jiraConfig.privateKeyFile).mkString
 
-  val SERVLET_BASE_URL: String = "/plugins/servlet"
-
-  def BASE_URI = new URI(jiraConfig.baseUrl)
+  val BASE_URI = new URI(jiraConfig.baseUrl)
 
   def REQUEST_TOKEN_URL = jiraConfig.baseUrl + SERVLET_BASE_URL + "/oauth/request-token"
 
@@ -25,6 +25,7 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
 
   def ACCESS_TOKEN_URL = jiraConfig.baseUrl + SERVLET_BASE_URL + "/oauth/access-token"
 
+  def getAuthorizedUrlForToken(token: String) = AUTHORIZED_URL + "?oauth_token=" + token
 
   lazy val accessor: OAuthAccessor = {
     val serviceProvider = new OAuthServiceProvider(REQUEST_TOKEN_URL, AUTHORIZED_URL, ACCESS_TOKEN_URL)
@@ -33,8 +34,6 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
     consumer.setProperty(OAuth.OAUTH_SIGNATURE_METHOD, OAuth.RSA_SHA1)
     new OAuthAccessor(consumer)
   }
-
-  def getAuthorizedUrlForToken(token: String) = AUTHORIZED_URL + "?oauth_token=" + token
 
   def getRequestToken: TokenSecretVerifierHolder = {
     try {
@@ -53,7 +52,7 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
     }
   }
 
-  def makeTestRequest(accessToken: String, url: String) = {
+  def makeTestGetRequest(accessToken: String, url: String) = {
     try {
       val client = new OAuthClient(new HttpClient4())
       accessor.accessToken = accessToken
@@ -92,7 +91,6 @@ object JiraClientApp extends App {
   val baseUrl = args(3)
   val callbackUrl = args(4)
 
-  val client = new JiraClient(JiraConfig(consumerKey, new File(privateKeyFile), baseUrl, callbackUrl))
   command match {
     case Commands.REQUEST_TOKEN => {
       if (args.length != 5) {
@@ -100,6 +98,7 @@ object JiraClientApp extends App {
           "Should have atleast 5 arguments - requestToken [consumerKey] [privateKeyFile] [baseUrl] [callbackUrl]")
       }
 
+      val client = new JiraClient(JiraConfig(consumerKey, new File(privateKeyFile), baseUrl, callbackUrl))
       val token = client.getRequestToken
       println("Request Token is " + token.token)
       println("Request Token secret is " + token.secret)
@@ -112,22 +111,23 @@ object JiraClientApp extends App {
             " [requestToken] [tokenSecret] [verifier]")
       }
 
+      val client = new JiraClient(JiraConfig(consumerKey, new File(privateKeyFile), baseUrl))
       val requestToken = args(5)
       val tokenSecret = args(6)
       val verifier = args(7)
       println("Access token is " + client.getAccessToken(requestToken, tokenSecret, verifier))
     }
-    case Commands.TEST_REQUEST => {
+    case Commands.TEST_GET_REQUEST => {
       if (args.length != 7) {
         sys.error(
-          "Should have atleast 8 arguments - accessToken [consumerKey] [privateKeyFile] [baseUrl] [callbackUrl]" +
+          "Should have atleast 7 arguments - testGetRequest [consumerKey] [privateKeyFile] [baseUrl] [callbackUrl]" +
             " [accessToken] [jiraUrl]")
       }
 
+      val client = new JiraClient(JiraConfig(consumerKey, new File(privateKeyFile), baseUrl))
       val accessToken = args(5)
       val jiraUrl = args(6)
-      println(jiraUrl)
-      println("Test response is " + client.makeTestRequest(accessToken, jiraUrl))
+      println("Test response is " + client.makeTestGetRequest(accessToken, jiraUrl))
     }
     case _ => throw new IllegalArgumentException("Could not find match")
   }

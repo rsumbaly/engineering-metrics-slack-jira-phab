@@ -1,1 +1,2 @@
-GET     /phab            @controllers.Application.main(usernames: String, nWeeks: Int ?= 2)
+GET     /phab            @controllers.Application.phab(usernames: String, nWeeks: Int ?= 2)
+POST    /slack           @controllers.Application.slack

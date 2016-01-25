@@ -2,6 +2,7 @@ import sbt._
 import Keys._
 import play.Play.autoImport._
 import PlayKeys._
+import com.typesafe.sbt.SbtNativePackager.autoImport._
 
 object ApplicationBuild 
   extends Build { 

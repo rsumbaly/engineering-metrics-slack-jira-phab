@@ -1,6 +1,5 @@
 
 import java.io.File
-import java.io.PrintWriter
 
 import com.google.inject.AbstractModule
 import jira.JiraClient

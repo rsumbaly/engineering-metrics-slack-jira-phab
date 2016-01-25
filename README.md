@@ -13,10 +13,24 @@ In browser - http://localhost:9000/phab?usernames=user1,user2&nWeeks=4
 ```
 
 ## To deploy to remote box
+
+### Manual
 ```
 > sbt dist
 Copy zip from `target/universal`
 > ./bin/phabricator-report > new_log &
+```
+
+### Docker
+
+Make sure you have `docker` and `aws` CLI installed
+```
+> sbt docker:publishLocal
+> docker images
+[Check if your image exists]
+> sbt docker:staging
+[To test the Docker file output in target]
+>  docker run --name phab -p 8080:9000 phabricator-reports:0.0.2
 ```
 
 # Slack 
@@ -48,6 +62,6 @@ e) To revoke access at any given time go to = https://[company].atlassian.net/pl
 
 f) Check if everything works
 ```
-[phabricator-report] runMain jira.JiraClient testRequest test-report [private key file path - corresponding to public key entered above] https://[company].atlassian.net http://[company].org [accessToken] [jiraUrl]
+[phabricator-report] runMain jira.JiraClient testGetRequest test-report [private key file path - corresponding to public key entered above] https://[company].atlassian.net http://[company].org [accessToken] [jiraUrl]
 ```
-
+Example jiraUrl - https://[company].atlassian.net/rest/api/2/issue/[ticket]

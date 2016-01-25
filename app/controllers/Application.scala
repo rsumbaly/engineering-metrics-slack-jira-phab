@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext
 class Application @Inject()(reporter: PhabricatorReporter)
                            (implicit ec: ExecutionContext) extends Controller with StrictLogging {
 
-  def main(usernames: String, nWeeks: Int) = Action.async {
+  def phab(usernames: String, nWeeks: Int) = Action.async {
     val teamUsernames = usernames.trim.split(",").toList
     if (teamUsernames.length <= 1) {
       Future.successful(BadRequest("Should have atleast two team members"))
@@ -26,6 +26,12 @@ class Application @Inject()(reporter: PhabricatorReporter)
         logger.error("Error while retrieving report", e)
         BadRequest(s"Error while retrieving report - ${e.getMessage}")
       }
+    }
+  }
+
+  def slack = Action.async { request =>
+    Future {
+      Ok("Things look good")
     }
   }
 
