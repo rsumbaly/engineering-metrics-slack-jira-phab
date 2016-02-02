@@ -16,7 +16,7 @@ class GuiceJobFactory @Inject()(guice: Injector) extends JobFactory {
 
   @throws(classOf[SchedulerException])
   override def newJob(bundle: TriggerFiredBundle, scheduler: Scheduler): Job = {
-    guice.getInstance(bundle.getJobDetail().getJobClass)
+    guice.getInstance(bundle.getJobDetail.getJobClass)
   }
 }
 
@@ -29,7 +29,7 @@ class SlackScheduler @Inject()(factory: SchedulerFactory,
   val scheduler = factory.getScheduler
   scheduler.setJobFactory(jobFactory)
 
-  val slackJob = JobBuilder.newJob().withIdentity("slack-job").ofType(classOf[SlackJob]).build()
+  val slackJob = JobBuilder.newJob.withIdentity("slack-job").ofType(classOf[SlackJob]).build()
   val slackTrigger = TriggerBuilder
     .newTrigger()
     .withIdentity("slack-trigger-name").withSchedule(

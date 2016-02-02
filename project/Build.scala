@@ -32,6 +32,7 @@ object ApplicationBuild
   val main = Project(appName, file(".")).enablePlugins(play.PlayScala).settings(
     version := appVersion,
     libraryDependencies ++= appDependencies,
+    scalaVersion := "2.10.5",
     scalacOptions += "-feature",
     resolvers += "Atlassian" at "https://maven.atlassian.com/content/repositories/atlassian-public",
     resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",

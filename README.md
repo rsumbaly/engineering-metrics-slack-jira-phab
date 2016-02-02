@@ -65,3 +65,8 @@ f) Check if everything works
 [phabricator-report] runMain jira.JiraClient testGetRequest test-report [private key file path - corresponding to public key entered above] https://[company].atlassian.net http://[company].org [accessToken] [jiraUrl]
 ```
 Example jiraUrl - https://[company].atlassian.net/rest/api/2/issue/[ticket]
+
+# On AWS
+> Use default Linux based AMI
+> sudo yum remove java-1.7.0-openjdk
+> sudo yum install java-1.8.0

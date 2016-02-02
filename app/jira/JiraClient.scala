@@ -35,15 +35,16 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
     new OAuthAccessor(consumer)
   }
 
+  lazy val client = new OAuthClient(new HttpClient4())
+
   def getRequestToken: TokenSecretVerifierHolder = {
     try {
-      val oAuthClient = new OAuthClient(new HttpClient4())
-      val message = oAuthClient.getRequestTokenResponse(accessor, OAuthMessage.POST,
+      val message = client.getRequestTokenResponse(accessor, OAuthMessage.POST,
         ImmutableList.of(new OAuth.Parameter(OAuth.OAUTH_CALLBACK, jiraConfig.callback))
       )
 
       TokenSecretVerifierHolder(
-        token = accessor.requestToken,
+        requestToken = accessor.requestToken,
         secret = accessor.tokenSecret,
         verifier = message.getParameter(OAuth.OAUTH_VERIFIER))
     }
@@ -54,7 +55,6 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
 
   def makeTestGetRequest(accessToken: String, url: String) = {
     try {
-      val client = new OAuthClient(new HttpClient4())
       accessor.accessToken = accessToken
       client.invoke(accessor, url, Lists.newArrayList()).readBodyAsString
     }
@@ -63,17 +63,30 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
     }
   }
 
-  def getAccessToken(requestToken: String, tokenSecret: String, oauthVerifier: String) {
+  def getAccessToken(requestToken: String, tokenSecret: String, oauthVerifier: String) = {
     try {
-      val client = new OAuthClient(new HttpClient4())
       accessor.requestToken = requestToken
       accessor.tokenSecret = tokenSecret
       val message = client.getAccessToken(accessor, OAuthMessage.POST,
         ImmutableList.of(new OAuth.Parameter(OAuth.OAUTH_VERIFIER, oauthVerifier)))
-      message.getToken
+
+      AccessTokenSessionHandlerHolder(message.getToken, message.getParameter("oauth_session_handle"))
     }
     catch {
       case e: Throwable => throw new RuntimeException("Failed to get access tokens", e)
+    }
+  }
+
+  def refreshAccessToken(existingAccessToken: String, sessionHandle: String) = {
+    try {
+      accessor.accessToken = existingAccessToken
+      val message = client.getAccessToken(accessor, OAuthMessage.POST,
+        ImmutableList.of(new OAuth.Parameter("oauth_session_handle", sessionHandle)))
+
+      AccessTokenSessionHandlerHolder(message.getToken, message.getParameter("oauth_session_handle"))
+    }
+    catch {
+      case e: Throwable => throw new RuntimeException("Failed to renew access tokens", e)
     }
   }
 
@@ -99,10 +112,10 @@ object JiraClientApp extends App {
       }
 
       val client = new JiraClient(JiraConfig(consumerKey, new File(privateKeyFile), baseUrl, callbackUrl))
-      val token = client.getRequestToken
-      println("Request Token is " + token.token)
-      println("Request Token secret is " + token.secret)
-      println("Authorized url " + client.getAuthorizedUrlForToken(token.token))
+      val holder = client.getRequestToken
+      println("Request Token is " + holder.requestToken)
+      println("Request Token secret is " + holder.secret)
+      println("Authorized url " + client.getAuthorizedUrlForToken(holder.requestToken))
     }
     case Commands.ACCESS_TOKEN => {
       if (args.length != 8) {
@@ -115,7 +128,10 @@ object JiraClientApp extends App {
       val requestToken = args(5)
       val tokenSecret = args(6)
       val verifier = args(7)
-      println("Access token is " + client.getAccessToken(requestToken, tokenSecret, verifier))
+
+      val handler = client.getAccessToken(requestToken, tokenSecret, verifier)
+      println("Access token is " + handler.accessToken)
+      println("Session handler is " + handler.sessionHandler)
     }
     case Commands.TEST_GET_REQUEST => {
       if (args.length != 7) {
@@ -128,6 +144,21 @@ object JiraClientApp extends App {
       val accessToken = args(5)
       val jiraUrl = args(6)
       println("Test response is " + client.makeTestGetRequest(accessToken, jiraUrl))
+    }
+    case Commands.REFRESH_ACCESS_TOKEN => {
+      if (args.length != 7) {
+        sys.error(
+          "Should have atleast  arguments - testGetRequest [consumerKey] [privateKeyFile] [baseUrl] [callbackUrl]" +
+            "[existingAccessToken] [existingSessionHandler]")
+      }
+      val client = new JiraClient(JiraConfig(consumerKey, new File(privateKeyFile), baseUrl))
+      val existingAccessToken = args(5)
+      val existingSessionHandler = args(6)
+
+      val holder = client.refreshAccessToken(existingAccessToken, existingSessionHandler)
+
+      println("Refreshed access token is " + holder.accessToken)
+      println("Refreshed session handler is " + holder.sessionHandler)
     }
     case _ => throw new IllegalArgumentException("Could not find match")
   }

@@ -16,11 +16,11 @@ class SlackJob @Inject()(config: SlackConfig,
 
   implicit val ec = executionContext
   lazy val connectorPerTeam = config.teamConfigs.map { teamConfig =>
-    (teamConfig.name -> new SlackApi(teamConfig.hookUrl))
+    (teamConfig.channelName -> new SlackApi(teamConfig.hookUrl))
   }.toMap
 
   lazy val teamNamesPerTeam = config.teamConfigs.map { teamConfig =>
-    (teamConfig.name -> teamConfig.teamUsernames)
+    (teamConfig.channelName -> teamConfig.teamUsernames)
   }.toMap
 
   override def execute(context: JobExecutionContext) = {

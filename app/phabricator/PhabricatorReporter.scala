@@ -19,19 +19,32 @@ trait PhabricatorReporter {
    * @param lastNWeek Look at tickets created in the last N weeks
    * @return Report per person
    */
-  def generateSummaryReport(
-                             teamUsernames: List[String],
-                             lastNWeek: Int): Future[immutable.Map[String, SummaryReport]]
+  def generateSummaryReport(teamUsernames: List[String], lastNWeek: Int,
+                            limit: Int = Int.MaxValue):
+  Future[immutable.Map[String, SummaryReport]]
 
-  def generateOpenReviewReport(
-                                teamUsernames: List[String]): Future[immutable.Map[String, OpenReviewsReport]]
+  /**
+   * Generates a list of open reviews for team members (only for diffs sent within the team)
+   * @param teamUsernames List of user names
+   * @return Report per person
+   */
+  def generateOpenReviewReport(teamUsernames: List[String],
+                               limit: Int = Int.MaxValue):
+  Future[immutable.Map[String, OpenReviewsReport]]
+
+
+  /**
+   * Just for one user, generate a list of open reviews (independent of team)
+   * @param username Username
+   * @return Report for the person
+   */
+  def generateOpenReviewUserName(username: String, limit: Int = Int.MaxValue): Future[OpenReviewsReport]
 }
 
-class PhabricatorReporterImpl @Inject()(
-                                         queryEngine: PhabricatorQuery)
+class PhabricatorReporterImpl @Inject()(queryEngine: PhabricatorQuery)
                                        (implicit ec: ExecutionContext) extends PhabricatorReporter {
 
-  override def generateOpenReviewReport(teamUsernames: List[String]) = {
+  override def generateOpenReviewReport(teamUsernames: List[String], limit: Int) = {
     for {
     // Convert all user names to ids
       usernameToPhids <- queryEngine.getPhidForUsername(teamUsernames)
@@ -49,7 +62,8 @@ class PhabricatorReporterImpl @Inject()(
 
       // Get all the reviews
       allReviews <- queryEngine.getAllReviewsFromAuthorPhids(teamPhids,
-        statusList = List(DiffStatus.NEEDS_REVIEW))
+        statusList = List(DiffStatus.NEEDS_REVIEW),
+        limit = limit)
 
     } yield {
 
@@ -80,9 +94,26 @@ class PhabricatorReporterImpl @Inject()(
     }
   }
 
-  override def generateSummaryReport(
-                                      teamUsernames: List[String],
-                                      lastNWeek: Int): Future[immutable.Map[String, SummaryReport]] = {
+  override def generateOpenReviewUserName(username: String, limit: Int) = {
+
+    for {
+    // Convert all user names to ids
+      usernameToPhids <- queryEngine.getPhidForUsername(List(username))
+
+      phid = usernameToPhids.getOrElse(username, throw new IllegalArgumentException(("User not found")))
+
+      // Get all the reviews
+      allReviews <- queryEngine.getAllReviewsToPhid(phid,
+        statusList = List(DiffStatus.NEEDS_REVIEW),
+        limit = limit)
+
+    } yield {
+      OpenReviewsReport(username, allReviews.map(_._2))
+    }
+  }
+
+  override def generateSummaryReport(teamUsernames: List[String], lastNWeek: Int, limit: Int):
+  Future[immutable.Map[String, SummaryReport]] = {
 
     for {
     // Convert all user names to ids
@@ -101,7 +132,8 @@ class PhabricatorReporterImpl @Inject()(
 
       // Get all the reviews
       allReviews <- queryEngine.getAllReviewsFromAuthorPhids(teamPhids,
-        DateTime.now.minusWeeks(lastNWeek))
+        DateTime.now.minusWeeks(lastNWeek),
+        limit = limit)
 
     } yield {
 
@@ -224,7 +256,6 @@ object PhabricatorReporterApp extends App {
   val testReporter = new PhabricatorReporterImpl(testQuery)
 
   println(Await.result(
-    testReporter.generateSummaryReport(
-      List("<FILL>"), 2), 10 minutes))
+    testReporter.generateOpenReviewUserName("<FILL>", 10), 10 minutes))
 
 }

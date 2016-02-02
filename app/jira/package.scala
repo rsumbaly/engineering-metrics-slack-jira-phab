@@ -13,8 +13,11 @@ package object jira {
     val REQUEST_TOKEN = Value("requestToken")
     val ACCESS_TOKEN = Value("accessToken")
     val TEST_GET_REQUEST = Value("testGetRequest")
+    val REFRESH_ACCESS_TOKEN = Value("refreshAccessToken")
   }
 
-  case class TokenSecretVerifierHolder(token: String, verifier: String, secret: String)
+  case class TokenSecretVerifierHolder(requestToken: String, verifier: String, secret: String)
+
+  case class AccessTokenSessionHandlerHolder(accessToken: String, sessionHandler: String)
 
 }

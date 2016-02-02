@@ -13,7 +13,6 @@ import play.api.Environment
 import play.api.Configuration
 import slack._
 
-
 class ReportsMetricsModule(env: Environment, config: Configuration)
   extends AbstractModule {
 
@@ -46,17 +45,21 @@ class ReportsMetricsModule(env: Environment, config: Configuration)
 
     // Slack specific configuration
     bind(classOf[SlackConfig]).toInstance {
-      val configs = config.getConfigList("slack.teams").get
+      val slackConfig = config.getConfig("slack").get
+      val configs = slackConfig.getConfigList("teams").get
       SlackConfig(configs.map { teamConfig =>
-        SlackTeamConfig(teamConfig.getString("name").get,
-          teamConfig.getString("hook").get,
+        SlackTeamConfig(teamConfig.getString("channelName").get,
+          teamConfig.getString("hookUrl").get,
           teamConfig.getStringList("users").get.toList)
-      }.toList)
+      }.toList,
+        slackConfig.getString("commandToken").get)
     }
     bind(classOf[SlackJob])
     bind(classOf[GuiceJobFactory])
     bind(classOf[SchedulerFactory]).toInstance(new StdSchedulerFactory("quartz.properties"))
     bind(classOf[SlackScheduler]).asEagerSingleton
+
+    bind(classOf[SlackCommandInterpreter]).to(classOf[SlackCommandInterpreterImpl])
 
   }
 
