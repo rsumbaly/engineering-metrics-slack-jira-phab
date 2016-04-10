@@ -56,7 +56,7 @@ class PhabricatorReporterImpl @Inject()(queryEngine: PhabricatorQuery)
 
       // Check if we got everything back properly
       _ = if (usernameToPhids.size != teamUsernames.length) {
-        throw new IllegalArgumentException("Couldn't find for some user name "
+        throw new IllegalArgumentException("1) Couldn't find for some user names: "
           + (teamUsernames.toSet -- usernameToPhids.keys))
       }
 
@@ -126,7 +126,7 @@ class PhabricatorReporterImpl @Inject()(queryEngine: PhabricatorQuery)
 
       // Check if we got everything back properly
       _ = if (usernameToPhids.size != teamUsernames.length) {
-        throw new IllegalArgumentException("Couldn't find for some user name "
+        throw new IllegalArgumentException("2) Couldn't find for some user names: "
           + (teamUsernames.toSet -- usernameToPhids.keys))
       }
 

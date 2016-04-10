@@ -1,6 +1,7 @@
 package jira
 
 import java.io.File
+import java.lang.Thread.UncaughtExceptionHandler
 import java.util.Collections
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
@@ -66,11 +67,15 @@ class JiraQueryImpl @Inject()(jiraClient: JiraClient, config: Configuration) ext
     override def newThread(r: Runnable): Thread = {
       val thread = new Thread(r, "accessTokenRefresher")
       thread.setDaemon(true)
+      thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler {
+        override def uncaughtException(t: Thread, e: Throwable): Unit =
+          logger.error("Error in access token refresher", e)
+      })
       thread
     }
   }).scheduleAtFixedRate(new Runnable() {
     override def run(): Unit = {
-      logger.info("Trying to refresh = " + accessToken + " , " + sessionHandler)
+      logger.info("Refreshing = " + accessToken + " , " + sessionHandler)
       val replacementAccessToken = jiraClient.refreshAccessToken(accessToken, sessionHandler)
       logger.info(
         "New access token = " + replacementAccessToken.accessToken + " , " + replacementAccessToken.sessionHandler)
@@ -80,7 +85,7 @@ class JiraQueryImpl @Inject()(jiraClient: JiraClient, config: Configuration) ext
       sessionHandler = replacementAccessToken.sessionHandler
       restClient = newRestClient
     }
-  }, 3, 3, TimeUnit.DAYS)
+  }, 1, 1, TimeUnit.DAYS)
 
   override def getOpenTickets(username: String, project: String) = {
     restClient.getSearchClient.searchJql(

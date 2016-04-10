@@ -82,11 +82,13 @@ class JiraClient @Inject()(jiraConfig: JiraConfig) extends StrictLogging {
       accessor.accessToken = existingAccessToken
       val message = client.getAccessToken(accessor, OAuthMessage.POST,
         ImmutableList.of(new OAuth.Parameter("oauth_session_handle", sessionHandle)))
-
       AccessTokenSessionHandlerHolder(message.getToken, message.getParameter("oauth_session_handle"))
     }
     catch {
-      case e: Throwable => throw new RuntimeException("Failed to renew access tokens", e)
+      case e: Throwable => {
+        logger.error("Error while refreshing access tokens", e)
+        throw new RuntimeException("Failed to refresh access tokens", e)
+      }
     }
   }
 
